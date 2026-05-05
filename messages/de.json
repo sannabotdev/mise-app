@@ -1,0 +1,254 @@
+{
+  "nav": {
+    "plan": "Wochenplan",
+    "shopping": "Einkauf",
+    "calendar": "Kalender",
+    "family": "Familie",
+    "settings": "Einstellungen"
+  },
+  "plan": {
+    "title": "Wochenplan",
+    "generate": "Plan generieren",
+    "generating": "Plan wird erstellt...",
+    "addWish": "Wunsch einwerfen",
+    "wishPlaceholder": "Was wünschst du dir diese Woche?",
+    "cookAvailable": "Kochen möglich",
+    "noCook": "Kein Kochen",
+    "breakfast": "Frühstück",
+    "lunch": "Mittagessen",
+    "dinner": "Abendessen",
+    "readyMeal": "Fertiggericht",
+    "servings": "{count, plural, one {# Portion} other {# Portionen}}",
+    "attendees": "Anwesend",
+    "noMealsYet": "Noch kein Plan generiert",
+    "submitWish": "Wunsch einreichen",
+    "selectMember": "Wer hat den Wunsch?",
+    "wishes": "Wünsche",
+    "wishesHint": "Werden beim nächsten Plan generieren berücksichtigt und dann gelöscht."
+  },
+  "shopping": {
+    "title": "Einkaufsliste",
+    "addItem": "Artikel hinzufügen",
+    "clearChecked": "Erledigte löschen",
+    "itemCount": "{count} Artikel",
+    "categories": {
+      "produce": "Obst & Gemüse",
+      "meat": "Fleisch & Fisch",
+      "dairy": "Milchprodukte",
+      "frozen": "Tiefkühlkost",
+      "dry_goods": "Trockenwaren",
+      "beverages": "Getränke",
+      "household": "Haushalt",
+      "other": "Sonstiges"
+    },
+    "placeholder": "Produkt eingeben...",
+    "unitPlaceholder": "Einheit",
+    "addButton": "Hinzufügen",
+    "searchPlaceholder": "Produkt suchen..."
+  },
+  "calendar": {
+    "title": "Kalender",
+    "addEvent": "Termin hinzufügen",
+    "connectGoogle": "Google Kalender verbinden",
+    "icalUrl": "iCal URL",
+    "copyUrl": "URL kopieren",
+    "copied": "Kopiert!"
+  },
+  "family": {
+    "title": "Familie",
+    "addMember": "Mitglied hinzufügen",
+    "editMember": "Mitglied bearbeiten",
+    "name": "Name",
+    "isChild": "Kind",
+    "preferences": "Vorlieben",
+    "dislikes": "Abneigungen",
+    "save": "Speichern",
+    "cancel": "Abbrechen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "nutritionStyle": "Ernährungsstil",
+    "language": "Sprache",
+    "familyName": "Familienname",
+    "inviteCode": "Einladungscode",
+    "copyCode": "Code kopieren",
+    "save": "Speichern",
+    "owner": "Owner",
+    "noFamilyFound": "Keine Familie gefunden.",
+    "copied": "Kopiert!",
+    "regenerateTitle": "Code erneuern (macht alten Link ungültig)",
+    "regenerate": "Erneuern",
+    "regenerateWarning": "⚠ Alten Code erneuern macht bestehende Einladungslinks ungültig.",
+    "mealTypes": "Mahlzeiten",
+    "activeDays": "Aktive Tage",
+    "cookAvailableDays": "Kochen möglich",
+    "languages": {
+      "de": "🇩🇪 Deutsch",
+      "en": "🇬🇧 English"
+    },
+    "saving": "Speichern...",
+    "logout": "Abmelden",
+    "styles": {
+      "low_carb_high_protein": "Low Carb / High Protein",
+      "vegetarian": "Vegetarisch",
+      "vegan": "Vegan",
+      "mediterranean": "Mediterran",
+      "balanced": "Ausgewogen",
+      "paleo": "Paleo"
+    }
+  },
+  "join": {
+    "title": "Familie beitreten",
+    "name": "Dein Name",
+    "preferences": "Vorlieben (optional)",
+    "dislikes": "Abneigungen (optional)",
+    "join": "Beitreten",
+    "invalidCode": "Ungültiger Einladungscode",
+    "namePlaceholder": "Dein Name",
+    "preferencesPlaceholder": "z.B. Pasta, Pizza, Salat",
+    "dislikesPlaceholder": "z.B. Fisch, Zwiebeln",
+    "joining": "..."
+  },
+  "common": {
+    "loading": "Lädt...",
+    "pleaseWait": "Bitte warten…",
+    "error": "Fehler aufgetreten",
+    "retry": "Erneut versuchen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "cancel": "Abbrechen"
+  },
+  "meta": {
+    "title": "Mise - Familienküche",
+    "description": "Gemeinsame Familienmahlplanung"
+  },
+  "days": {
+    "monday": "Montag",
+    "tuesday": "Dienstag",
+    "wednesday": "Mittwoch",
+    "thursday": "Donnerstag",
+    "friday": "Freitag",
+    "saturday": "Samstag",
+    "sunday": "Sonntag",
+    "mon": "Mo",
+    "tue": "Di",
+    "wed": "Mi",
+    "thu": "Do",
+    "fri": "Fr",
+    "sat": "Sa",
+    "sun": "So"
+  },
+  "planExtras": {
+    "statusCreating": "Erstelle Wochenplan...",
+    "statusDone": "Fertig!",
+    "statusError": "Fehler aufgetreten",
+    "macros": "Makros pro Portion",
+    "instructions": "Zubereitung",
+    "ingredients": "Zutaten",
+    "wishes": "Wünsche",
+    "noMealsTip": "Tippe oben auf \"Plan generieren\"",
+    "overwriteTitle": "Plan überschreiben?",
+    "overwriteBody": "Der bestehende Wochenplan und alle plan-generierten Einkaufsartikel werden gelöscht.",
+    "overwrite": "Überschreiben"
+    ,
+    "configTitle": "Plan-Optionen",
+    "configMeals": "Mahlzeiten diese Woche",
+    "configDays": "Tage diese Woche",
+    "configCookDays": "Kochen möglich diese Woche",
+    "configHint": "Vorbelegt aus den Einstellungen, kann für diese Woche angepasst werden.",
+    "generateNow": "Plan generieren",
+    "overwriteAndGenerate": "Überschreiben & generieren",
+    "regenerateMeal": "Neu vorschlagen",
+    "regeneratingMeal": "Wird neu vorgeschlagen..."
+  },
+  "shoppingExtras": {
+    "amountPlaceholder": "Menge",
+    "empty": "Noch keine Artikel auf der Liste.",
+    "dash": "–",
+    "units": ["g", "kg", "ml", "l", "Stück", "Packung", "Dose", "Flasche", "Bund", "EL", "TL", ""]
+  },
+  "calendarExtras": {
+    "titlePlaceholder": "Titel",
+    "forWhom": "Für wen?",
+    "save": "Speichern"
+  },
+  "familyExtras": {
+    "child": "Kind",
+    "managed": "Verwaltet",
+    "you": "Du",
+    "managedHint": "Kein Login erforderlich — z.B. für Kinder",
+    "commaSeparated": "(kommagetrennt)",
+    "empty": "Noch keine Familienmitglieder hinzugefügt.",
+    "schedule": "Mahlzeitenplan",
+    "scheduleHint": "An welchen Tagen für welche Mahlzeiten vorsorgen?",
+    "mealShort": { "breakfast": "Fr", "lunch": "Mi", "dinner": "Ab" }
+  },
+  "auth": {
+    "login": {
+      "title": "Anmelden",
+      "google": "Mit Google anmelden",
+      "or": "oder",
+      "emailPlaceholder": "E-Mail",
+      "passwordPlaceholder": "Passwort",
+      "submit": "Anmelden",
+      "noAccount": "Noch kein Konto?",
+      "register": "Registrieren",
+      "errorFailed": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+      "errorInvalidCreds": "E-Mail oder Passwort falsch."
+    },
+    "register": {
+      "titleAccount": "Konto erstellen",
+      "titleFamily": "Familie einrichten",
+      "google": "Mit Google registrieren",
+      "or": "oder",
+      "namePlaceholder": "Dein Name",
+      "emailPlaceholder": "E-Mail",
+      "passwordPlaceholder": "Passwort (min. 6 Zeichen)",
+      "next": "Weiter",
+      "haveAccount": "Schon ein Konto?",
+      "login": "Anmelden",
+      "choiceCreate": "Neue Familie",
+      "choiceJoin": "Beitreten",
+      "familyNamePlaceholder": "Familie {name}",
+      "nutritionStyle": "Ernährungsstil",
+      "joinHint": "Gib den Einladungscode ein, den du von deiner Familie erhalten hast.",
+      "invitePlaceholder": "XXXXXXXX",
+      "finishCreate": "Familie erstellen",
+      "finishJoin": "Beitreten",
+      "back": "← Zurück",
+      "errorSignupFailed": "Registrierung fehlgeschlagen.",
+      "errorFamilyCreateFailed": "Familie konnte nicht erstellt werden.",
+      "errorInvalidInvite": "Ungültiger Einladungscode."
+    }
+  },
+  "onboard": {
+    "title": "Fast geschafft!",
+    "subtitle": "Richte jetzt deine Familie ein.",
+    "yourName": "Dein Name",
+    "pickCreate": "Neue Familie erstellen",
+    "pickJoin": "Familie beitreten",
+    "familyNamePlaceholder": "Familie {name}",
+    "nutritionStyle": "Ernährungsstil",
+    "invitePlaceholder": "Einladungscode",
+    "joinButton": "Beitreten",
+    "createButton": "Familie erstellen",
+    "back": "← Zurück",
+    "errorCreateFamily": "Fehler beim Erstellen der Familie.",
+    "errorInvalidInvite": "Ungültiger Einladungscode."
+  },
+  "ai": {
+    "unknownMember": "Unbekannt",
+    "mealTypesAll": "breakfast, lunch, dinner",
+    "langInstruction": "Erstelle alle Mahlzeitennamen und Anleitungen auf Deutsch.",
+    "systemPrompt": "You are a family nutrition planner. Always respond with valid JSON only, no markdown, no explanation.",
+    "nutritionStyleDescriptions": {
+      "low_carb_high_protein": "Viel Protein, wenig Kohlenhydrate, viel Gemüse, kein Brot/Nudeln/Reis/Zucker",
+      "vegetarian": "Kein Fleisch oder Fisch, viel Protein durch Hülsenfrüchte/Eier/Milchprodukte",
+      "vegan": "Keine tierischen Produkte, vollständiges Protein durch Pflanzenkombinationen",
+      "mediterranean": "Olivenöl, Fisch, Hülsenfrüchte, Gemüse, moderates Vollkorn, wenig rotes Fleisch",
+      "balanced": "Abwechslungsreich, alle Lebensmittelgruppen, moderate Portionen",
+      "paleo": "Fleisch, Fisch, Eier, Gemüse, Nüsse, kein Getreide oder Milchprodukte"
+    }
+  }
+}

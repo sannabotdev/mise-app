@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum NutritionStyle {
+  low_carb_high_protein
+  vegetarian
+  vegan
+  mediterranean
+  balanced
+  paleo
+
+  @@map("nutrition_style")
+}
+
+enum Language {
+  de
+  en
+
+  @@map("language")
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+
+  @@map("meal_type")
+}
+
+enum ShoppingCategory {
+  produce
+  meat
+  dairy
+  frozen
+  dry_goods
+  beverages
+  household
+  other
+
+  @@map("shopping_category")
+}
+
+enum CalendarSource {
+  google
+  manual
+
+  @@map("calendar_source")
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Family {
+  id              String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String
+  invite_code     String         @unique @default(dbgenerated("substring(md5(random()::text), 1, 8)"))
+  nutrition_style NutritionStyle @default(balanced)
+  language        Language       @default(de)
+  owner_id        String?        @db.Uuid
+  active_meal_types String[]     @default(["breakfast","lunch","dinner"])
+  active_days       Int[]        @default([0,1,2,3,4,5,6])
+  cook_available_days Int[]      @default([0,1,2,3,4,5,6])
+  created_at      DateTime       @default(now()) @db.Timestamptz()
+
+  members         Member[]
+  week_plans      WeekPlan[]
+  shopping_items  ShoppingItem[]
+  product_history ProductHistory[]
+  calendar_events CalendarEvent[]
+  family_wishes   FamilyWish[]
+
+  @@map("families")
+}
+
+model Member {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id          String   @db.Uuid
+  user_id            String?  @unique @db.Uuid
+  name               String
+  is_child           Boolean  @default(false)
+  preferences        String[]
+  dislikes           String[]
+  meal_schedule      Json?    @db.JsonB
+  google_oauth_token String?
+  ical_secret_token  String   @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at         DateTime @default(now()) @db.Timestamptz()
+
+  family          Family          @relation(fields: [family_id], references: [id], onDelete: Cascade)
+  meal_attendees  MealAttendee[]
+  calendar_events CalendarEvent[]
+  family_wishes   FamilyWish[]
+
+  @@map("members")
+}
+
+model WeekPlan {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id       String   @db.Uuid
+  week_start_date DateTime @db.Date
+  created_at      DateTime @default(now()) @db.Timestamptz()
+
+  family Family    @relation(fields: [family_id], references: [id], onDelete: Cascade)
+  days   PlanDay[]
+
+  @@unique([family_id, week_start_date])
+  @@map("week_plans")
+}
+
+model PlanDay {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  week_plan_id   String   @db.Uuid
+  date           DateTime @db.Date
+  cook_available Boolean  @default(true)
+
+  week_plan WeekPlan @relation(fields: [week_plan_id], references: [id], onDelete: Cascade)
+  meals     Meal[]
+
+  @@unique([week_plan_id, date])
+  @@map("plan_days")
+}
+
+model Meal {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  plan_day_id   String   @db.Uuid
+  meal_type     MealType
+  name          String
+  is_ready_meal Boolean  @default(false)
+  recipe_json   Json?    @db.JsonB
+  instructions  String?
+  servings      Int      @default(4)
+
+  plan_day       PlanDay        @relation(fields: [plan_day_id], references: [id], onDelete: Cascade)
+  meal_attendees MealAttendee[]
+  shopping_items ShoppingItem[]
+
+  @@unique([plan_day_id, meal_type])
+  @@map("meals")
+}
+
+model MealAttendee {
+  meal_id   String @db.Uuid
+  member_id String @db.Uuid
+
+  meal   Meal   @relation(fields: [meal_id], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@id([meal_id, member_id])
+  @@map("meal_attendees")
+}
+
+model FamilyWish {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id  String   @db.Uuid
+  member_id  String?  @db.Uuid
+  wish_text  String
+  created_at DateTime @default(now()) @db.Timestamptz()
+
+  family Family  @relation(fields: [family_id], references: [id], onDelete: Cascade)
+  member Member? @relation(fields: [member_id], references: [id], onDelete: SetNull)
+
+  @@index([family_id])
+  @@map("family_wishes")
+}
+
+model ShoppingItem {
+  id                   String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id            String           @db.Uuid
+  name                 String
+  amount               Decimal?         @db.Decimal
+  unit                 String?
+  category             ShoppingCategory @default(other)
+  checked              Boolean          @default(false)
+  source_meal_id       String?          @db.Uuid
+  last_updated_by_plan DateTime?        @db.Date
+  created_at           DateTime         @default(now()) @db.Timestamptz()
+
+  family      Family @relation(fields: [family_id], references: [id], onDelete: Cascade)
+  source_meal Meal?  @relation(fields: [source_meal_id], references: [id], onDelete: SetNull)
+
+  @@unique([family_id, name])
+  @@map("shopping_items")
+}
+
+model ProductHistory {
+  id        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id String            @db.Uuid
+  name      String
+  unit      String?
+  category  ShoppingCategory?
+
+  family Family @relation(fields: [family_id], references: [id], onDelete: Cascade)
+
+  @@unique([family_id, name])
+  @@map("product_history")
+}
+
+model CalendarEvent {
+  id         String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  family_id  String         @db.Uuid
+  member_id  String         @db.Uuid
+  title      String
+  date       DateTime       @db.Date
+  start_time DateTime?      @db.Time()
+  end_time   DateTime?      @db.Time()
+  all_day    Boolean        @default(false)
+  source     CalendarSource @default(manual)
+  created_at DateTime       @default(now()) @db.Timestamptz()
+
+  family Family @relation(fields: [family_id], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
