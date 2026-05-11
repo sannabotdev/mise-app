@@ -1,11 +1,9 @@
--- Mise App – vollständiges Schema (kombinierte Migration)
-
--- ─── Extensions ──────────────────────────────────────────────────────────────
+-- ─── Extensions ───────────────────────────────────────────────────────────────
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- ─── Enums ───────────────────────────────────────────────────────────────────
+-- ─── Enums ────────────────────────────────────────────────────────────────────
 
 CREATE TYPE "nutrition_style" AS ENUM (
   'low_carb_high_protein',
@@ -33,19 +31,19 @@ CREATE TYPE "shopping_category" AS ENUM (
 
 CREATE TYPE "calendar_source" AS ENUM ('google', 'manual');
 
--- ─── Tabellen ────────────────────────────────────────────────────────────────
+-- ─── Tabellen ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE "families" (
-  "id"                 UUID             NOT NULL DEFAULT uuid_generate_v4(),
-  "name"               TEXT             NOT NULL,
-  "invite_code"        TEXT             NOT NULL DEFAULT substring(md5(random()::text), 1, 8),
-  "nutrition_style"    "nutrition_style" NOT NULL DEFAULT 'balanced',
-  "language"           "language"       NOT NULL DEFAULT 'de',
-  "owner_id"           UUID             REFERENCES auth.users(id) ON DELETE SET NULL,
-  "active_meal_types"  TEXT[]           NOT NULL DEFAULT ARRAY['breakfast','lunch','dinner'],
-  "active_days"        INT[]            NOT NULL DEFAULT ARRAY[0,1,2,3,4,5,6],
-  "cook_available_days" INT[]           NOT NULL DEFAULT ARRAY[0,1,2,3,4,5,6],
-  "created_at"         TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+  "id"                  UUID              NOT NULL DEFAULT uuid_generate_v4(),
+  "name"                TEXT              NOT NULL,
+  "invite_code"         TEXT              NOT NULL DEFAULT substring(md5(random()::text), 1, 8),
+  "nutrition_style"     "nutrition_style" NOT NULL DEFAULT 'balanced',
+  "language"            "language"        NOT NULL DEFAULT 'de',
+  "owner_id"            UUID              REFERENCES auth.users(id) ON DELETE SET NULL,
+  "active_meal_types"   TEXT[]            NOT NULL DEFAULT ARRAY['breakfast','lunch','dinner'],
+  "active_days"         INT[]             NOT NULL DEFAULT ARRAY[0,1,2,3,4,5,6],
+  "cook_available_days" INT[]             NOT NULL DEFAULT ARRAY[0,1,2,3,4,5,6],
+  "created_at"          TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
 
   CONSTRAINT "families_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "families_invite_code_key" UNIQUE ("invite_code")
@@ -159,9 +157,9 @@ CREATE TABLE "shopping_items" (
 );
 
 CREATE TABLE "product_history" (
-  "id"        UUID                 NOT NULL DEFAULT uuid_generate_v4(),
-  "family_id" UUID                 NOT NULL,
-  "name"      TEXT                 NOT NULL,
+  "id"        UUID                NOT NULL DEFAULT uuid_generate_v4(),
+  "family_id" UUID                NOT NULL,
+  "name"      TEXT                NOT NULL,
   "unit"      TEXT,
   "category"  "shopping_category",
 
@@ -213,13 +211,13 @@ LANGUAGE SQL
 SECURITY DEFINER
 STABLE
 AS $$
-  SELECT family_id FROM public.members WHERE user_id = auth.uid() LIMIT 1;
+  SELECT family_id FROM public.members WHERE user_id = (SELECT auth.uid()) LIMIT 1;
 $$;
 
 -- families
 CREATE POLICY "families_insert" ON families
   FOR INSERT TO authenticated
-  WITH CHECK (owner_id = auth.uid());
+  WITH CHECK (owner_id = (SELECT auth.uid()));
 
 CREATE POLICY "families_select" ON families
   FOR SELECT TO authenticated
@@ -227,39 +225,53 @@ CREATE POLICY "families_select" ON families
 
 CREATE POLICY "families_update" ON families
   FOR UPDATE TO authenticated
-  USING (owner_id = auth.uid());
+  USING (owner_id = (SELECT auth.uid()));
 
--- members
+-- members: family-weite CRUD durch eingeloggte Family-Members
 CREATE POLICY "members_insert" ON members
   FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (SELECT auth.uid()) OR family_id = get_my_family_id());
 
 CREATE POLICY "members_select" ON members
   FOR SELECT TO authenticated
-  USING (family_id = get_my_family_id() OR user_id = auth.uid());
+  USING (family_id = get_my_family_id() OR user_id = (SELECT auth.uid()));
 
 CREATE POLICY "members_update" ON members
   FOR UPDATE TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()) OR family_id = get_my_family_id())
+  WITH CHECK (user_id = (SELECT auth.uid()) OR family_id = get_my_family_id());
 
--- week_plans
-CREATE POLICY "week_plans_select" ON week_plans
-  FOR SELECT TO authenticated
-  USING (family_id = get_my_family_id());
+CREATE POLICY "members_delete" ON members
+  FOR DELETE TO authenticated
+  USING (family_id = get_my_family_id() AND user_id IS DISTINCT FROM (SELECT auth.uid()));
 
--- plan_days
-CREATE POLICY "plan_days_select" ON plan_days
-  FOR SELECT TO authenticated
+-- week_plans: Family-weiter Voll-CRUD
+CREATE POLICY "week_plans_modify" ON week_plans
+  FOR ALL TO authenticated
+  USING (family_id = get_my_family_id())
+  WITH CHECK (family_id = get_my_family_id());
+
+-- plan_days: chain via week_plans
+CREATE POLICY "plan_days_modify" ON plan_days
+  FOR ALL TO authenticated
   USING (
-    week_plan_id IN (
-      SELECT id FROM week_plans WHERE family_id = get_my_family_id()
-    )
+    week_plan_id IN (SELECT id FROM week_plans WHERE family_id = get_my_family_id())
+  )
+  WITH CHECK (
+    week_plan_id IN (SELECT id FROM week_plans WHERE family_id = get_my_family_id())
   );
 
--- meals
-CREATE POLICY "meals_select" ON meals
-  FOR SELECT TO authenticated
+-- meals: chain via plan_days + week_plans
+CREATE POLICY "meals_modify" ON meals
+  FOR ALL TO authenticated
   USING (
+    plan_day_id IN (
+      SELECT pd.id FROM plan_days pd
+      JOIN week_plans wp ON wp.id = pd.week_plan_id
+      WHERE wp.family_id = get_my_family_id()
+    )
+  )
+  WITH CHECK (
     plan_day_id IN (
       SELECT pd.id FROM plan_days pd
       JOIN week_plans wp ON wp.id = pd.week_plan_id
@@ -267,17 +279,19 @@ CREATE POLICY "meals_select" ON meals
     )
   );
 
--- meal_attendees
-CREATE POLICY "meal_attendees_select" ON meal_attendees
-  FOR SELECT TO authenticated
+-- meal_attendees: chain via members
+CREATE POLICY "meal_attendees_modify" ON meal_attendees
+  FOR ALL TO authenticated
   USING (
-    member_id IN (
-      SELECT id FROM members WHERE family_id = get_my_family_id()
-    )
+    member_id IN (SELECT id FROM members WHERE family_id = get_my_family_id())
+  )
+  WITH CHECK (
+    member_id IN (SELECT id FROM members WHERE family_id = get_my_family_id())
   );
 
--- family_wishes
+-- family_wishes: Voll-CRUD
 CREATE POLICY "family_wishes_all" ON family_wishes
+  TO authenticated
   USING (family_id = get_my_family_id())
   WITH CHECK (family_id = get_my_family_id());
 
@@ -298,13 +312,10 @@ CREATE POLICY "shopping_items_delete" ON shopping_items
   FOR DELETE TO authenticated
   USING (family_id = get_my_family_id());
 
--- product_history
-CREATE POLICY "product_history_select" ON product_history
-  FOR SELECT TO authenticated
-  USING (family_id = get_my_family_id());
-
-CREATE POLICY "product_history_insert" ON product_history
-  FOR INSERT TO authenticated
+-- product_history: Voll-CRUD
+CREATE POLICY "product_history_modify" ON product_history
+  FOR ALL TO authenticated
+  USING (family_id = get_my_family_id())
   WITH CHECK (family_id = get_my_family_id());
 
 -- calendar_events
@@ -316,9 +327,99 @@ CREATE POLICY "calendar_events_insert" ON calendar_events
   FOR INSERT TO authenticated
   WITH CHECK (family_id = get_my_family_id());
 
+CREATE POLICY "calendar_events_update" ON calendar_events
+  FOR UPDATE TO authenticated
+  USING (family_id = get_my_family_id())
+  WITH CHECK (family_id = get_my_family_id());
+
 CREATE POLICY "calendar_events_delete" ON calendar_events
   FOR DELETE TO authenticated
   USING (family_id = get_my_family_id());
+
+-- Helper: lookup family by invite_code without RLS restriction (used in join flow)
+CREATE OR REPLACE FUNCTION get_family_id_by_invite_code(p_invite_code text)
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT id FROM public.families WHERE invite_code = p_invite_code LIMIT 1;
+$$;
+
+-- Onboarding: create family + first member atomically, bypassing RLS.
+-- auth.uid() is checked inside the function so only authenticated callers succeed.
+CREATE OR REPLACE FUNCTION create_family_and_member(
+  p_family_name  TEXT,
+  p_member_name  TEXT,
+  p_nutrition_style nutrition_style DEFAULT 'balanced',
+  p_language     language          DEFAULT 'de'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id  UUID;
+  v_family_id UUID;
+  v_member_id UUID;
+BEGIN
+  v_user_id := (SELECT auth.uid());
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+
+  INSERT INTO families (name, nutrition_style, language, owner_id)
+  VALUES (p_family_name, p_nutrition_style, p_language, v_user_id)
+  RETURNING id INTO v_family_id;
+
+  INSERT INTO members (family_id, name, user_id)
+  VALUES (v_family_id, p_member_name, v_user_id)
+  RETURNING id INTO v_member_id;
+
+  RETURN json_build_object('family_id', v_family_id, 'member_id', v_member_id);
+END;
+$$;
+
+-- Onboarding: join an existing family via invite code + create member.
+CREATE OR REPLACE FUNCTION join_family_as_member(
+  p_invite_code TEXT,
+  p_member_name TEXT
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id   UUID;
+  v_family_id UUID;
+  v_member_id UUID;
+BEGIN
+  v_user_id := (SELECT auth.uid());
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+
+  SELECT id INTO v_family_id FROM families WHERE invite_code = upper(p_invite_code) LIMIT 1;
+  IF v_family_id IS NULL THEN
+    RAISE EXCEPTION 'invalid invite code';
+  END IF;
+
+  INSERT INTO members (family_id, name, user_id)
+  VALUES (v_family_id, p_member_name, v_user_id)
+  RETURNING id INTO v_member_id;
+
+  RETURN json_build_object('family_id', v_family_id, 'member_id', v_member_id);
+END;
+$$;
+
+-- ─── Grants (PostgREST / Data API) ───────────────────────────────────────────
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated;
 
 -- ─── Realtime ─────────────────────────────────────────────────────────────────
 

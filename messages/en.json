@@ -219,7 +219,10 @@
       "back": "← Back",
       "errorSignupFailed": "Registration failed.",
       "errorFamilyCreateFailed": "Could not create family.",
-      "errorInvalidInvite": "Invalid invite code."
+      "errorInvalidInvite": "Invalid invite code.",
+      "confirmTitle": "Confirm your email",
+      "confirmHint": "We sent a confirmation email to {email}.",
+      "confirmSubhint": "Click the link in the email to continue. You'll be taken to the family setup automatically."
     }
   },
   "onboard": {

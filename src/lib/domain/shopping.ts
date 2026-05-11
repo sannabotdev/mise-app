@@ -1,4 +1,4 @@
-import type { ShoppingCategory } from '@prisma/client'
+import type { ShoppingCategory } from '@/types'
 
 export const ALLOWED_SHOPPING_CATEGORIES: readonly ShoppingCategory[] = [
   'produce',

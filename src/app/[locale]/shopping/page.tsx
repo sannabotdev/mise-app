@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useFamilyContext } from '@/lib/family-context'
 import { createClient } from '@/lib/supabase/client'
 import { ShoppingItem, ShoppingCategory } from '@/types'
+import { coerceShoppingCategory } from '@/lib/domain/shopping'
 import { Check, Plus, Trash2 } from 'lucide-react'
 
 const CATEGORY_ORDER: ShoppingCategory[] = [
@@ -30,16 +31,18 @@ export default function ShoppingPage() {
 
   async function fetchItems() {
     if (!family) return
-    const res = await fetch(`/api/shopping?family_id=${family.id}`)
-    const data = await res.json()
-    setItems(data ?? [])
+    const { data } = await supabase
+      .from('shopping_items')
+      .select('*')
+      .eq('family_id', family.id)
+      .order('created_at')
+    setItems((data ?? []) as ShoppingItem[])
   }
 
   useEffect(() => {
     fetchItems()
     if (!family) return
 
-    // Realtime via Supabase, data via Prisma-backed API
     const channel = supabase
       .channel('shopping-realtime')
       .on(
@@ -57,13 +60,17 @@ export default function ShoppingPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [family])
+  }, [family]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchSuggestions(q: string) {
     if (!family || q.length < 1) { setSuggestions([]); return }
-    const res = await fetch(`/api/shopping/autocomplete?q=${encodeURIComponent(q)}&family_id=${family.id}`)
-    const data = await res.json()
-    setSuggestions(data)
+    const { data } = await supabase
+      .from('product_history')
+      .select('name, unit, category')
+      .eq('family_id', family.id)
+      .ilike('name', `%${q}%`)
+      .limit(5)
+    setSuggestions((data ?? []) as { name: string; unit: string; category: ShoppingCategory }[])
   }
 
   function handleNameChange(val: string) {
@@ -83,17 +90,22 @@ export default function ShoppingPage() {
   async function addItem() {
     if (!family || !newName.trim()) return
     setAdding(true)
-    await fetch('/api/shopping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const category = coerceShoppingCategory(newCategory)
+    await supabase.from('shopping_items').upsert(
+      {
         family_id: family.id,
         name: newName.trim(),
         amount: newAmount ? parseFloat(newAmount) : null,
         unit: newUnit || null,
-        category: newCategory,
-      }),
-    })
+        category,
+        checked: false,
+      },
+      { onConflict: 'family_id,name' }
+    )
+    await supabase.from('product_history').upsert(
+      { family_id: family.id, name: newName.trim(), unit: newUnit || null, category },
+      { onConflict: 'family_id,name' }
+    )
     setNewName('')
     setNewAmount('')
     setNewUnit('')
@@ -103,22 +115,18 @@ export default function ShoppingPage() {
   }
 
   async function toggleCheck(item: ShoppingItem) {
-    await fetch(`/api/shopping/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ checked: !item.checked }),
-    })
+    await supabase.from('shopping_items').update({ checked: !item.checked }).eq('id', item.id)
     setItems(items.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i))
   }
 
   async function deleteItem(id: string) {
-    await fetch(`/api/shopping/${id}`, { method: 'DELETE' })
+    await supabase.from('shopping_items').delete().eq('id', id)
     setItems(items.filter((i) => i.id !== id))
   }
 
   async function clearChecked() {
     const checked = items.filter((i) => i.checked)
-    await Promise.all(checked.map((i) => fetch(`/api/shopping/${i.id}`, { method: 'DELETE' })))
+    await Promise.all(checked.map((i) => supabase.from('shopping_items').delete().eq('id', i.id)))
     setItems(items.filter((i) => !i.checked))
   }
 

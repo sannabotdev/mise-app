@@ -3,21 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev-singleton.mjs",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "icons:generate": "node scripts/generate-icons.mjs",
-    "db:generate": "prisma generate",
-    "db:migrate": "node scripts/migrate.js",
-    "db:deploy": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio",
-    "db:push": "prisma db push",
-    "postinstall": "prisma generate"
+    "db:reset": "supabase db reset --db-url \"$DATABASE_URL_DIRECT\" --yes",
+    "db:push": "supabase db push --db-url \"$DATABASE_URL_DIRECT\"",
+    "db:diff": "supabase db diff -f",
+    "types:db": "supabase gen types typescript --db-url \"$DATABASE_URL_DIRECT\" --schema public > src/types/db.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "lucide-react": "^1.14.0",
@@ -25,19 +21,16 @@
     "next-intl": "^4.11.0",
     "next-pwa": "^5.6.0",
     "openai": "^6.35.0",
-    "pg": "^8.20.0",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@prisma/client": "^7.8.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
-    "prisma": "^7.8.0",
     "sharp": "^0.34.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

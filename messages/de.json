@@ -219,7 +219,10 @@
       "back": "← Zurück",
       "errorSignupFailed": "Registrierung fehlgeschlagen.",
       "errorFamilyCreateFailed": "Familie konnte nicht erstellt werden.",
-      "errorInvalidInvite": "Ungültiger Einladungscode."
+      "errorInvalidInvite": "Ungültiger Einladungscode.",
+      "confirmTitle": "E-Mail bestätigen",
+      "confirmHint": "Wir haben eine Bestätigungs-E-Mail an {email} gesendet.",
+      "confirmSubhint": "Bitte klicke auf den Link in der E-Mail. Danach wirst du automatisch zur Familieneinrichtung weitergeleitet."
     }
   },
   "onboard": {

@@ -79,18 +79,14 @@ export default function SettingsPage() {
     if (!family) return
     setSaving(true)
     await gl.runTopbar(async () => {
-      await fetch(`/api/families/${family.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: familyName,
-          nutrition_style: nutritionStyle,
-          language,
-          active_meal_types: activeMealTypes,
-          active_days: activeDays,
-          cook_available_days: cookAvailableDays,
-        }),
-      })
+      await supabase.from('families').update({
+        name: familyName,
+        nutrition_style: nutritionStyle,
+        language,
+        active_meal_types: activeMealTypes,
+        active_days: activeDays,
+        cook_available_days: cookAvailableDays,
+      }).eq('id', family.id)
       await refresh()
       if (language !== locale) {
         router.push(`/${language}/settings`)
@@ -110,11 +106,7 @@ export default function SettingsPage() {
     setRegenerating(true)
     await gl.runTopbar(async () => {
       const newCode = randomInviteCode()
-      await fetch(`/api/families/${family.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invite_code: newCode }),
-      })
+      await supabase.from('families').update({ invite_code: newCode }).eq('id', family.id)
       await refresh()
     }).finally(() => setRegenerating(false))
   }

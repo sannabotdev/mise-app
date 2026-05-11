@@ -8,9 +8,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Loader2, Mail, Lock, Eye, EyeOff, User, ChevronRight } from 'lucide-react'
 import { NutritionStyle } from '@/types'
 import { NUTRITION_STYLE_ICONS } from '@/lib/nutrition-styles'
-import { useFamilyContext } from '@/lib/family-context'
 
-type Step = 'account' | 'family'
+type Step = 'account' | 'family' | 'confirm'
 type FamilyChoice = 'create' | 'join'
 
 const NUTRITION_STYLES: NutritionStyle[] = [
@@ -34,7 +33,6 @@ export default function RegisterPage() {
   const ts = useTranslations('settings')
   const router = useRouter()
   const supabase = createClient()
-  const { refresh } = useFamilyContext()
 
   const [step, setStep] = useState<Step>('account')
   const [familyChoice, setFamilyChoice] = useState<FamilyChoice>('create')
@@ -74,7 +72,6 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    // 1. Auth-User erstellen
     const { data: authData, error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
@@ -87,42 +84,18 @@ export default function RegisterPage() {
       return
     }
 
-    if (familyChoice === 'create') {
-      const famRes = await fetch('/api/families', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: familyName.trim() || t('familyNamePlaceholder', { name }),
-          nutrition_style: nutritionStyle,
-          language: locale,
-        }),
-      })
-      if (!famRes.ok) {
-        setError(t('errorFamilyCreateFailed'))
-        setLoading(false)
-        return
-      }
-      const family = await famRes.json()
-      await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ family_id: family.id, name: name.trim() }),
-      })
-    } else {
-      const res = await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ family_id: inviteCode.trim(), name: name.trim() }),
-      })
-      if (!res.ok) {
-        setError(t('errorInvalidInvite'))
-        setLoading(false)
-        return
-      }
+    if (!authData.session) {
+      // Email confirmation is required — session will be granted after user clicks the link.
+      // The auth callback redirects to /plan → /onboard handles family setup.
+      setStep('confirm')
+      setLoading(false)
+      return
     }
 
-    await refresh()
-    router.push(`/${locale}/plan`)
+    // Session exists (email confirmation disabled) → go straight to onboard.
+    const params = new URLSearchParams({ name: name.trim() })
+    if (familyChoice === 'join' && inviteCode) params.set('invite', inviteCode.trim().toUpperCase())
+    router.push(`/${locale}/onboard?${params}`)
   }
 
   return (
@@ -223,6 +196,16 @@ export default function RegisterPage() {
               </Link>
             </p>
           </>
+        )}
+
+        {/* ── Schritt: E-Mail bestätigen ── */}
+        {step === 'confirm' && (
+          <div className="text-center space-y-4 py-4">
+            <div className="text-5xl">📧</div>
+            <h2 className="text-lg font-semibold text-gray-900">{t('confirmTitle')}</h2>
+            <p className="text-sm text-gray-500">{t('confirmHint', { email })}</p>
+            <p className="text-xs text-gray-400">{t('confirmSubhint')}</p>
+          </div>
         )}
 
         {/* ── Schritt 2: Familie ── */}

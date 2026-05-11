@@ -27,11 +27,12 @@ export default function OnboardPage() {
 
   const { refresh } = useFamilyContext()
 
-  const [choice, setChoice] = useState<Choice>('pick')
+  const inviteParam = searchParams.get('invite') ?? ''
+  const [choice, setChoice] = useState<Choice>(inviteParam ? 'join' : 'pick')
   const [name, setName] = useState(searchParams.get('name') ?? '')
   const [familyName, setFamilyName] = useState('')
   const [nutritionStyle, setNutritionStyle] = useState<NutritionStyle>('balanced')
-  const [inviteCode, setInviteCode] = useState('')
+  const [inviteCode, setInviteCode] = useState(inviteParam)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -46,24 +47,13 @@ export default function OnboardPage() {
     if (!name.trim()) return
     setLoading(true); setError('')
     await gl.runBlocking(async () => {
-      const famRes = await fetch('/api/families', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: familyName.trim() || t('familyNamePlaceholder', { name: name.trim() }),
-          nutrition_style: nutritionStyle,
-          language: locale,
-        }),
+      const { error } = await supabase.rpc('create_family_and_member', {
+        p_family_name: familyName.trim() || t('familyNamePlaceholder', { name: name.trim() }),
+        p_member_name: name.trim(),
+        p_nutrition_style: nutritionStyle,
+        p_language: locale as 'de' | 'en',
       })
-      if (!famRes.ok) throw new Error()
-
-      const family = await famRes.json()
-      const memRes = await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ family_id: family.id, name: name.trim() }),
-      })
-      if (!memRes.ok) throw new Error()
+      if (error) throw new Error(error.message)
 
       await refresh()
       router.push(`/${locale}/plan`)
@@ -75,12 +65,12 @@ export default function OnboardPage() {
     if (!name.trim() || !inviteCode) return
     setLoading(true); setError('')
     await gl.runBlocking(async () => {
-      const res = await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ family_id: inviteCode.toUpperCase(), name: name.trim() }),
+      const { error } = await supabase.rpc('join_family_as_member', {
+        p_invite_code: inviteCode.toUpperCase(),
+        p_member_name: name.trim(),
       })
-      if (!res.ok) throw new Error()
+      if (error) throw new Error(error.message)
+
       await refresh()
       router.push(`/${locale}/plan`)
     }).catch(() => setError(t('errorInvalidInvite')))

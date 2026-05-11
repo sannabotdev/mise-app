@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useFamilyContext } from '@/lib/family-context'
+import { createClient } from '@/lib/supabase/client'
 import type { CalendarEvent, Member } from '@/types'
 import { DAY_KEYS } from '@/lib/domain/plan'
 import { addDays, getMonday, isoDate } from '@/lib/date/week'
@@ -39,6 +40,7 @@ export default function CalendarScreen({
 
   const { family, members, loading } = useFamilyContext()
   const gl = useGlobalLoading()
+  const supabase = createClient()
 
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isFetchingEvents, setIsFetchingEvents] = useState(false)
@@ -73,11 +75,19 @@ export default function CalendarScreen({
   useEffect(() => {
     if (!family) return
     setIsFetchingEvents(true)
-    fetch(`/api/calendar?family_id=${family.id}&from=${weekDates[0]}&to=${weekDates[6]}`)
-      .then((r) => r.json())
-      .then((data) => setEvents(data ?? []))
-      .finally(() => setIsFetchingEvents(false))
-  }, [family, weekDates])
+    const load = async () => {
+      const { data } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('family_id', family.id)
+        .gte('date', weekDates[0])
+        .lte('date', weekDates[6])
+        .order('date')
+      setEvents((data ?? []) as CalendarEvent[])
+      setIsFetchingEvents(false)
+    }
+    load().catch(() => setIsFetchingEvents(false))
+  }, [family, weekDates]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function copyIcalUrl(member: Member) {
     const url = `${window.location.origin}/api/ical/${member.id}/${member.ical_secret_token}`
@@ -89,23 +99,20 @@ export default function CalendarScreen({
   async function saveEvent() {
     if (!family || !newEvent.title || !newEvent.date || !newEvent.member_id) return
     await gl.runTopbar(async () => {
-      await fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          family_id: family.id,
-          member_id: newEvent.member_id,
-          title: newEvent.title,
-          date: newEvent.date,
-          all_day: newEvent.all_day,
-          start_time: newEvent.start_time || null,
-          end_time: newEvent.end_time || null,
-        }),
+      await supabase.from('calendar_events').insert({
+        family_id: family.id,
+        member_id: newEvent.member_id,
+        title: newEvent.title,
+        date: newEvent.date,
+        all_day: newEvent.all_day,
+        start_time: newEvent.start_time || null,
+        end_time: newEvent.end_time || null,
       })
       setAddModal(false)
       setNewEvent({ title: '', date: '', member_id: '', all_day: true, start_time: '', end_time: '' })
-      const data = await fetch(`/api/calendar?family_id=${family.id}&from=${weekDates[0]}&to=${weekDates[6]}`).then((r) => r.json())
-      setEvents(data ?? [])
+      const { data } = await supabase.from('calendar_events').select('*')
+        .eq('family_id', family.id).gte('date', weekDates[0]).lte('date', weekDates[6]).order('date')
+      setEvents((data ?? []) as CalendarEvent[])
     })
   }
 

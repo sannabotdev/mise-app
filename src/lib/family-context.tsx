@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
-import { Family, Member } from '@/types'
+import type { Family, Member } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 
 interface FamilyContextType {
@@ -38,15 +38,31 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    // Important: avoid any intermediary caching (e.g. service worker / next-pwa)
-    // or we might get stale "family: null" responses right after create/join.
-    const res = await fetch('/api/context', { cache: 'no-store' })
-    if (!res.ok) { setLoading(false); return }
-    const data = await res.json()
-    setUserId(data.userId ?? user.id)
-    setFamily((data.family ?? null) as Family | null)
-    setCurrentMember((data.currentMember ?? null) as Member | null)
-    setMembers((data.members ?? []) as Member[])
+    setUserId(user.id)
+
+    const { data: myMember } = await supabase
+      .from('members')
+      .select('*, family:families(*)')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!myMember || !myMember.family) {
+      setFamily(null)
+      setCurrentMember(null)
+      setMembers([])
+      setLoading(false)
+      return
+    }
+
+    const { data: allMembers } = await supabase
+      .from('members')
+      .select('*')
+      .eq('family_id', myMember.family_id)
+      .order('created_at')
+
+    setFamily(myMember.family as unknown as Family)
+    setCurrentMember(myMember as unknown as Member)
+    setMembers((allMembers ?? []) as unknown as Member[])
     setLoading(false)
   }, [supabase])
 

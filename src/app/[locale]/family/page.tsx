@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useFamilyContext } from '@/lib/family-context'
+import { createClient } from '@/lib/supabase/client'
 import { Member } from '@/types'
 import { ALL_DAYS, DAY_KEYS } from '@/lib/domain/plan'
 import { Plus, Edit2, X, Check, Baby, User, Trash2, Loader2 } from 'lucide-react'
@@ -34,6 +35,7 @@ export default function FamilyPage() {
   const tx = useTranslations('familyExtras')
   const { family, members, currentMember, refresh } = useFamilyContext()
   const gl = useGlobalLoading()
+  const supabase = createClient()
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
   const [form, setForm] = useState<MemberForm>({ name: '', is_child: false, preferences: '', dislikes: '', schedule: {} })
   const [saving, setSaving] = useState(false)
@@ -88,17 +90,9 @@ export default function FamilyPage() {
 
     await gl.runTopbar(async () => {
       if (editingId === 'new') {
-        await fetch('/api/members', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ family_id: family.id, ...payload, managed: true }),
-        })
+        await supabase.from('members').insert({ family_id: family.id, ...payload })
       } else {
-        await fetch(`/api/members/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
+        await supabase.from('members').update(payload).eq('id', editingId!)
       }
       refresh()
       setEditingId(null)
@@ -108,7 +102,7 @@ export default function FamilyPage() {
   async function deleteMember(id: string) {
     setDeletingId(id)
     await gl.runTopbar(async () => {
-      await fetch(`/api/members/${id}`, { method: 'DELETE' })
+      await supabase.from('members').delete().eq('id', id)
       refresh()
     }).finally(() => setDeletingId(null))
   }

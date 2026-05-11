@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function JoinPage({ params }: { params: { code: string; locale: string } }) {
   const t = useTranslations('join')
@@ -11,34 +12,47 @@ export default function JoinPage({ params }: { params: { code: string; locale: s
   const [dislikes, setDislikes] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
   const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        const callbackUrl = encodeURIComponent(`/${params.locale}/join/${params.code}`)
+        router.replace(`/${params.locale}/auth/login?next=${callbackUrl}`)
+      } else {
+        setAuthChecking(false)
+      }
+    })
+  }, [params.code, params.locale, router, supabase])
 
   async function join() {
     if (!name.trim()) return
     setLoading(true)
     setError('')
 
-    const res = await fetch(`/api/join/${params.code}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: name.trim(),
-        preferences: preferences.split(',').map((s) => s.trim()).filter(Boolean),
-        dislikes: dislikes.split(',').map((s) => s.trim()).filter(Boolean),
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok || !data?.family_id || !data?.member?.id) {
-      setError(t('invalidCode'))
-      setLoading(false)
-      return
-    }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setError(t('invalidCode')); setLoading(false); return }
 
-    localStorage.setItem('mise_family_id', data.family_id)
-    localStorage.setItem('mise_member_id', data.member.id)
+    const { data: familyId } = await supabase.rpc('get_family_id_by_invite_code', {
+      p_invite_code: params.code.toUpperCase(),
+    })
+    if (!familyId) { setError(t('invalidCode')); setLoading(false); return }
+
+    const { error: memErr } = await supabase.from('members').insert({
+      family_id: familyId as string,
+      name: name.trim(),
+      user_id: user.id,
+      preferences: preferences.split(',').map((s) => s.trim()).filter(Boolean),
+      dislikes: dislikes.split(',').map((s) => s.trim()).filter(Boolean),
+    })
+
+    if (memErr) { setError(t('invalidCode')); setLoading(false); return }
     router.push(`/${params.locale}/plan`)
-    setLoading(false)
   }
+
+  if (authChecking) return null
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
