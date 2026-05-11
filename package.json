@@ -11,7 +11,11 @@
     "db:reset": "supabase db reset --db-url \"$DATABASE_URL_DIRECT\" --yes",
     "db:push": "supabase db push --db-url \"$DATABASE_URL_DIRECT\"",
     "db:diff": "supabase db diff -f",
-    "types:db": "supabase gen types typescript --db-url \"$DATABASE_URL_DIRECT\" --schema public > src/types/db.ts"
+    "types:db": "supabase gen types typescript --db-url \"$DATABASE_URL_DIRECT\" --schema public > src/types/db.ts",
+    "local:init": "npx supabase start && node scripts/setup-local-env.mjs",
+    "local:migrate": "npx supabase migration up",
+    "local:start": "next dev",
+    "local:reset": "npx supabase db reset"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
